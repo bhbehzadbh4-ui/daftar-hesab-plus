@@ -1,4 +1,5 @@
-name: Build Daftar Hesab Plus Android APK
+
+name: Build Daftar Hesab Plus APK
 
 on:
   push:
@@ -12,8 +13,9 @@ permissions:
 
 jobs:
   build:
-    name: Build installable APK
+    name: Build release APK
     runs-on: ubuntu-latest
+
     steps:
       - name: Get source code
         uses: actions/checkout@v4
@@ -27,21 +29,21 @@ jobs:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v4
 
-      - name: Install Android SDK 35
+      - name: Install Android SDK
         run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
 
-      - name: Set up Gradle 8.9
+      - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
 
-      - name: Build debug APK
-        run: gradle -p DaftariAndroid assembleDebug --stacktrace
+      - name: Build release APK
+        run: gradle -p DaftariAndroid assembleRelease --stacktrace
 
-      - name: Upload APK
+      - name: Upload release APK
         uses: actions/upload-artifact@v4
         with:
-          name: daftar-hesab-plus-v10-apk
-          path: DaftariAndroid/app/build/outputs/apk/debug/app-debug.apk
+          name: daftar-hesab-plus-v10-release
+          path: DaftariAndroid/app/build/outputs/apk/release/app-release-unsigned.apk
           if-no-files-found: error
           retention-days: 30

@@ -12,8 +12,8 @@ android {
         applicationId 'ir.behzad.daftari2'
         minSdk 23
         targetSdk 35
-        versionCode 13
-        versionName '10.3'
+        versionCode 14
+        versionName '10.4'
     }
 
     compileOptions {

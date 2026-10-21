@@ -32,6 +32,9 @@ input[type="date"][hidden]{display:none!important}
 .jalali-picker-day:disabled{visibility:hidden}
 .jalali-picker-foot{display:flex;justify-content:space-between;gap:8px;margin-top:14px}
 .jalali-picker-foot button:last-child{background:#123d70;color:#fff}
+.jalali-month-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.jalali-month-button{min-height:46px;border:0;border-radius:12px;background:#f2f6fa;color:#163555;font-size:13px}
+.jalali-month-button.selected{background:#123d70;color:#fff;font-weight:bold}
 </style></head><body>
 <header class="hero"><h1 id="storeTitle">📒 دفتر حساب پلاس</h1><p id="todayLine">حساب‌وکتاب ساده، مرتب و آفلاین • نسخه ۱۰</p><button type="button" id="pwaInstallBtn" class="pwa-install">⬇️ نصب اپ روی دستگاه</button></header>
 <main class="wrap">
@@ -56,7 +59,7 @@ input[type="date"][hidden]{display:none!important}
 </div>
 <div class="card" id="monthlyReportCard">
 <h2 class="section-title">📊 گزارش مالی ماهانه <span>بر اساس تاریخ تراکنش‌ها</span></h2>
-<div class="field"><label for="reportMonth">انتخاب ماه میلادی ثبت‌شده</label><input id="reportMonth" type="month" onchange="renderMonthlyReport()"></div>
+<div class="field"><label for="reportMonthJalali">انتخاب ماه شمسی</label><input id="reportMonth" type="hidden"><div class="jalali-date-control"><input id="reportMonthJalali" class="jalali-date-text" type="text" inputmode="numeric" autocomplete="off" placeholder="مثلاً ۱۴۰۵/۰۷" aria-label="ماه گزارش شمسی" onchange="jalaliMonthChanged()"><button type="button" class="jalali-date-trigger" aria-label="انتخاب ماه شمسی" onclick="openJalaliMonthPicker()">▦</button></div></div>
 <div class="stats">
 <div class="stat s1"><small>خرید نسیه مشتری‌ها</small><strong id="mrBuy">۰</strong></div>
 <div class="stat s2"><small>دریافتی از مشتری‌ها</small><strong id="mrPay">۰</strong></div>
@@ -84,7 +87,7 @@ input[type="date"][hidden]{display:none!important}
 </div>
 <div class="card" id="debtReminderCard"><h2 class="section-title">🔔 یادآور بدهی ماهانه <span id="debtMonth"></span></h2><div class="hint">این بخش هر بار که برنامه را باز می‌کنی، بدهکارهای فعلی را از روی مانده حساب محاسبه می‌کند. برای هر مشتری می‌توانی پیام آماده را در واتساپ یا پیامک باز کنی و تاریخ سررسید اختیاری ثبت کنی. پیام فقط پس از تأیید خودت ارسال می‌شود؛ ارسال خودکار در پس‌زمینه از داخل فایل HTML ممکن نیست.</div><div class="stats" style="margin-bottom:10px"><div class="stat s2"><small>تعداد بدهکارها</small><strong id="debtCount">۰</strong></div><div class="stat s1"><small>مجموع طلب فعلی</small><strong id="debtTotal">۰ تومان</strong></div></div><div id="debtReminderList"></div><div class="actions no-print" style="margin-top:10px"><button class="soft" onclick="copyAllDebtReminders()">📋 کپی فهرست بدهکارها</button><button class="soft" onclick="downloadDebtorReport()">⬇️ دریافت گزارش بدهکارها</button></div><p class="notice">برای بازشدن واتساپ، شماره مشتری بهتر است با کد کشور ذخیره شده باشد. پیش از ارسال، متن و مبلغ را بررسی کن. سررسید فقط یادآوری نمایشی است و اعلان خودکار گوشی ایجاد نمی‌کند.</p></div>
 <div class="card"><h2 class="section-title">🏬 حساب مغازه <span>جدا از حساب مشتری‌ها</span></h2><div class="stats" style="margin-bottom:10px"><div class="stat s3"><small>خرید و هزینه</small><strong id="shopBuySum">۰</strong></div><div class="stat s4"><small>فروش نقدی</small><strong id="shopSellSum">۰</strong></div></div><div class="field"><label>نوع حساب</label><select id="mType"><option value="shopbuy">خرید / هزینه مغازه</option><option value="shopsell">فروش نقدی مغازه</option></select></div><div class="grid2"><div class="field"><label>مبلغ به تومان *</label><input id="mAmt" inputmode="numeric" placeholder="مثلاً ۲۵۰۰۰۰"></div><div class="field"><label>تاریخ</label><input id="mDate" type="date" hidden><div class="jalali-date-control"><input id="mDateJalali" class="jalali-date-text" type="text" inputmode="numeric" autocomplete="off" placeholder="۱۴۰۵/۰۸/۰۱" aria-label="تاریخ به شمسی" onchange="jalaliDateChanged('mDate')"><button type="button" class="jalali-date-trigger" aria-label="انتخاب تاریخ شمسی" onclick="openJalaliPicker('mDate')">▦</button></div><div class="jal" id="mJal"></div></div></div><div class="field"><label>شرح</label><input id="mDesc" placeholder="مثلاً خرید نوشابه" maxlength="180"></div><button class="btn full" onclick="addShop()">ثبت حساب مغازه</button><div id="shopList"></div></div>
-<div class="card" id="backupCard"><h2 class="section-title">🛡 پشتیبان و بازیابی</h2><div class="hint">اطلاعات به‌صورت خودکار در حافظه همین مرورگر ذخیره می‌شود؛ برای اطمینان، مرتب فایل پشتیبان بگیر و آن را در پوشه‌ای امن نگه دار. پاک‌کردن داده‌های مرورگر ممکن است اطلاعات ذخیره‌شده را از بین ببرد.</div><div class="hint" id="backupReminder">وضعیت پشتیبان در حال بررسی است…</div><div class="actions"><button class="soft" onclick="exportBackup('download')">💾 دانلود پشتیبان</button><button class="soft" onclick="exportBackup('choose')">📁 انتخاب محل ذخیره</button></div><button class="soft full" style="margin-top:8px" onclick="document.getElementById('fileImport').click()">♻️ بازیابی از پشتیبان</button><input id="fileImport" type="file" accept=".json,application/json" onchange="importBackup(event)"><p class="notice">فایل پشتیبان شامل مشتری‌ها، تلفن‌ها، یادداشت‌ها، تراکنش‌ها و فهرست کالاهای بارکد است. محل ذخیره کارت حافظه به امکانات گوشی و مرورگر بستگی دارد و تضمین‌شده نیست.</p><div class="status" id="backupStatus"></div></div>
+<div class="card" id="backupCard"><h2 class="section-title">🛡 پشتیبان و بازیابی</h2><div class="hint">اطلاعات به‌صورت خودکار در حافظه همین مرورگر ذخیره می‌شود؛ برای اطمینان، مرتب فایل پشتیبان بگیر و آن را در پوشه‌ای امن نگه دار. پاک‌کردن داده‌های مرورگر ممکن است اطلاعات ذخیره‌شده را از بین ببرد.</div><div class="hint" id="backupReminder">وضعیت پشتیبان در حال بررسی است…</div><div class="actions"><button class="soft" onclick="exportBackup('download')">💾 دانلود پشتیبان</button><button class="soft" onclick="exportBackup('choose')">📁 انتخاب محل ذخیره</button></div><button class="soft full" style="margin-top:8px" onclick="requestBackupImport()">♻️ بازیابی از پشتیبان</button><input id="fileImport" type="file" accept=".json,application/json" onchange="importBackup(event)"><p class="notice">فایل پشتیبان شامل مشتری‌ها، تلفن‌ها، یادداشت‌ها، تراکنش‌ها و فهرست کالاهای بارکد است. محل ذخیره کارت حافظه به امکانات گوشی و مرورگر بستگی دارد و تضمین‌شده نیست.</p><div class="status" id="backupStatus"></div></div>
 <div class="card" id="barcodeCard">
 <h2 class="section-title">📦 بارکدخوان و ثبت کالا <span>فروش نقدی / نسیه</span></h2>
 <div class="hint">فهرست کالاها جدا از حساب‌های فعلی ذخیره می‌شود. برای اسکن با دوربین، معمولاً باید برنامه از یک نشانی امن HTTPS باز شود؛ اگر دوربین در دسترس نبود، بارکد را دستی وارد کن.</div>
@@ -246,16 +249,63 @@ function resetTransactionSearch(){['txSearchText','txFrom','txTo'].forEach(id=>d
 function copyFilteredTransactions(){const q=document.getElementById('txSearchText').value.trim().toLocaleLowerCase(),from=document.getElementById('txFrom').value,to=document.getElementById('txTo').value,who=document.getElementById('txCustomer').value,kind=document.getElementById('txKind').value;const list=db.trans.filter(t=>{const d=String(t.gv||'');if(from&&(!d||d<from))return false;if(to&&(!d||d>to))return false;if(who==='shop'&&Number(t.c)!==-1)return false;if(who!=='all'&&who!=='shop'&&Number(t.c)!==Number(who))return false;if(kind!=='all'&&t.k!==kind)return false;return !q||(transactionCustomerName(t)+' '+String(t.d||'')+' '+String(t.a||'')+' '+fa(t.a)+' '+String(t.dt||'')).toLocaleLowerCase().includes(q)}).sort((a,b)=>String(a.gv||'').localeCompare(String(b.gv||'')));if(!list.length){alert('نتیجه‌ای برای کپی وجود ندارد.');return}const text='گزارش تراکنش‌ها — '+(db.shop||'دفتر حساب پلاس')+'\n'+list.map((t,i)=>`${i+1}. ${t.gv||t.dt||'بدون تاریخ'} | ${transactionCustomerName(t)} | ${({buy:'خرید نسیه',pay:'دریافتی',shopbuy:'هزینه مغازه',shopsell:'فروش نقدی'}[t.k]||t.k)} | ${t.d||'بدون شرح'} | ${fa(t.a)} تومان`).join('\n')+'\n\nتعداد: '+fa(list.length)+' | جمع مبالغ: '+fa(list.reduce((n,t)=>n+(Number(t.a)||0),0))+' تومان';copyTextOrPrompt(text,'گزارش تراکنش‌ها آماده کپی است.')}
 function downloadDebtorReport(){const rows=db.customers.map((c,i)=>({c,b:sumCustomer(i).bal,s:sumCustomer(i)})).filter(x=>x.b>0).sort((a,b)=>b.b-a.b);if(!rows.length){alert('در حال حاضر مشتری بدهکار وجود ندارد.');return}const csv=[['نام مشتری','شماره تماس','جمع خرید نسیه','جمع دریافتی','مانده بدهی'],...rows.map(x=>[x.c.n,x.c.p||'',x.s.buy,x.s.pay,x.b])].map(r=>r.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(',')).join('\r\n');const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='gozaresh-bedehkarha-'+localISO()+'.csv';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}
 function escapeHtml(value){return String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]))}
+const jalaliMonthNames=['فروردین','اردیبهشت','خرداد','تیر','مرداد','شهریور','مهر','آبان','آذر','دی','بهمن','اسفند'];
+function currentJalaliMonthKey(){const p=jalaliPartsFromISO(localISO());return p?String(p.y)+'-'+String(p.m).padStart(2,'0'):''}
+function jalaliMonthLabel(key){
+ const m=/^(\d{4})-(\d{2})$/.exec(String(key||''));if(!m)return '';
+ const y=Number(m[1]),month=Number(m[2]);if(month<1||month>12||!jalaliToISO(y+'/'+month+'/1'))return '';
+ return jalaliMonthNames[month-1]+' '+new Intl.NumberFormat('fa-IR').format(y);
+}
+function syncJalaliMonthInput(){
+ const hidden=document.getElementById('reportMonth'),visible=document.getElementById('reportMonthJalali');if(!hidden||!visible)return;
+ visible.value=hidden.value?hidden.value.replace('-', '/').replace(/\d/g,d=>'۰۱۲۳۴۵۶۷۸۹'[Number(d)]):'';
+ visible.classList.remove('invalid');
+}
+function jalaliMonthChanged(){
+ const hidden=document.getElementById('reportMonth'),visible=document.getElementById('reportMonthJalali');if(!hidden||!visible)return;
+ const digits='۰۱۲۳۴۵۶۷۸۹',arabic='٠١٢٣٤٥٦٧٨٩';
+ const raw=visible.value.trim().replace(/[۰-۹]/g,ch=>String(digits.indexOf(ch))).replace(/[٠-٩]/g,ch=>String(arabic.indexOf(ch))).replace(/[./]/g,'-');
+ const m=/^(\d{4})-(\d{1,2})$/.exec(raw);
+ if(!m||Number(m[2])<1||Number(m[2])>12||!jalaliToISO(Number(m[1])+'/'+Number(m[2])+'/1')){
+  visible.classList.add('invalid');alert('ماه شمسی را به شکل ۱۴۰۵/۰۷ وارد کن یا از دکمه تقویم انتخاب کن.');syncJalaliMonthInput();return;
+ }
+ hidden.value=String(Number(m[1]))+'-'+String(Number(m[2])).padStart(2,'0');syncJalaliMonthInput();renderMonthlyReport();
+}
+let jalaliMonthPickerState=null;
+function openJalaliMonthPicker(){
+ const key=document.getElementById('reportMonth')?.value||currentJalaliMonthKey(),m=/^(\d{4})-(\d{2})$/.exec(key),now=jalaliPartsFromISO(localISO());
+ jalaliMonthPickerState={y:m?Number(m[1]):now.y,m:m?Number(m[2]):now.m};renderJalaliMonthPicker();
+}
+function shiftJalaliMonthYear(delta){if(!jalaliMonthPickerState)return;jalaliMonthPickerState.y+=delta;renderJalaliMonthPicker()}
+function renderJalaliMonthPicker(){
+ if(!jalaliMonthPickerState)return;
+ let root=document.getElementById('jalaliMonthPickerRoot');if(!root){root=document.createElement('div');root.id='jalaliMonthPickerRoot';document.body.appendChild(root)}
+ const {y,m}=jalaliMonthPickerState;
+ const months=jalaliMonthNames.map((name,index)=>'<button type="button" class="jalali-month-button'+(m===index+1?' selected':'')+'" onclick="chooseJalaliMonth('+(index+1)+')">'+name+'</button>').join('');
+ root.innerHTML='<div class="jalali-picker-backdrop" onclick="if(event.target===this)closeJalaliMonthPicker()"><div class="jalali-picker" role="dialog" aria-modal="true" aria-label="انتخاب ماه شمسی"><div class="jalali-picker-head"><button type="button" onclick="shiftJalaliMonthYear(-1)" aria-label="سال قبل">‹</button><strong>'+new Intl.NumberFormat('fa-IR').format(y)+' شمسی</strong><button type="button" onclick="shiftJalaliMonthYear(1)" aria-label="سال بعد">›</button></div><div class="jalali-month-grid">'+months+'</div><div class="jalali-picker-foot"><button type="button" onclick="closeJalaliMonthPicker()">انصراف</button></div></div></div>';
+}
+function chooseJalaliMonth(month){
+ if(!jalaliMonthPickerState)return;
+ const key=String(jalaliMonthPickerState.y)+'-'+String(month).padStart(2,'0');
+ if(!jalaliToISO(jalaliMonthPickerState.y+'/'+month+'/1'))return;
+ document.getElementById('reportMonth').value=key;syncJalaliMonthInput();closeJalaliMonthPicker();renderMonthlyReport();
+}
+function closeJalaliMonthPicker(){const root=document.getElementById('jalaliMonthPickerRoot');if(root)root.remove();jalaliMonthPickerState=null}
 function renderMonthlyReport(){
  const input=document.getElementById('reportMonth');if(!input)return;
- if(!input.value)input.value=localISO().slice(0,7);
- const month=input.value;let buy=0,pay=0,expense=0,sales=0,count=0;
- db.trans.forEach(t=>{const date=String(t.gv||'');if(!date.startsWith(month))return;count++;if(Number(t.c)===-1){if(t.k==='shopbuy')expense+=Number(t.a)||0;else if(t.k==='shopsell')sales+=Number(t.a)||0;}else{if(t.k==='buy')buy+=Number(t.a)||0;else if(t.k==='pay')pay+=Number(t.a)||0;}});
+ if(!input.value)input.value=currentJalaliMonthKey();
+ syncJalaliMonthInput();
+ const match=/^(\d{4})-(\d{2})$/.exec(input.value);if(!match)return;
+ const year=Number(match[1]),month=Number(match[2]);let buy=0,pay=0,expense=0,sales=0,count=0;
+ db.trans.forEach(t=>{
+  const p=jalaliPartsFromISO(String(t.gv||''));if(!p||p.y!==year||p.m!==month)return;
+  count++;if(Number(t.c)===-1){if(t.k==='shopbuy')expense+=Number(t.a)||0;else if(t.k==='shopsell')sales+=Number(t.a)||0;}else{if(t.k==='buy')buy+=Number(t.a)||0;else if(t.k==='pay')pay+=Number(t.a)||0;}
+ });
  setText('mrBuy',fa(buy)+' تومان');setText('mrPay',fa(pay)+' تومان');setText('mrExpense',fa(expense)+' تومان');setText('mrSales',fa(sales)+' تومان');
- const netCustomer=pay-buy,netShop=sales-expense;
- setText('mrSummary','تعداد تراکنش‌های ماه: '+fa(count)+' | تغییر خالص حساب مشتری‌ها: '+fa(netCustomer)+' تومان | تراز ثبت‌شده مغازه (فروش نقدی منهای هزینه): '+fa(netShop)+' تومان. این تراز، سود واقعی نیست و خرید نسیه/موجودی کالا را محاسبه نمی‌کند.');
+ const netCustomer=pay-buy,netShop=sales-expense,title=jalaliMonthLabel(input.value);
+ setText('mrSummary','گزارش ماه '+title+' — تعداد تراکنش‌ها: '+fa(count)+' | تغییر خالص حساب مشتری‌ها: '+fa(netCustomer)+' تومان | تراز ثبت‌شده مغازه (فروش نقدی منهای هزینه): '+fa(netShop)+' تومان. این تراز، سود واقعی نیست و خرید نسیه/موجودی کالا را محاسبه نمی‌کند.');
 }
-function copyMonthlyReport(){renderMonthlyReport();const month=document.getElementById('reportMonth').value;const text='گزارش ماهانه دفتر حساب پلاس — '+month+'\n'+document.getElementById('mrSummary').textContent+'\nخرید نسیه مشتری‌ها: '+document.getElementById('mrBuy').textContent+'\nدریافتی مشتری‌ها: '+document.getElementById('mrPay').textContent+'\nهزینه مغازه: '+document.getElementById('mrExpense').textContent+'\nفروش نقدی مغازه: '+document.getElementById('mrSales').textContent;copyTextOrPrompt(text,'گزارش ماهانه آماده کپی است.')}
+function copyMonthlyReport(){renderMonthlyReport();const month=jalaliMonthLabel(document.getElementById('reportMonth').value);const text='گزارش ماهانه دفتر حساب پلاس — '+month+'\n'+document.getElementById('mrSummary').textContent+'\nخرید نسیه مشتری‌ها: '+document.getElementById('mrBuy').textContent+'\nدریافتی از مشتری‌ها: '+document.getElementById('mrPay').textContent+'\nهزینه مغازه: '+document.getElementById('mrExpense').textContent+'\nفروش نقدی مغازه: '+document.getElementById('mrSales').textContent;copyTextOrPrompt(text,'گزارش ماهانه آماده کپی است.')}
 function el(tag,cls,txt){const e=document.createElement(tag);if(cls)e.className=cls;if(txt!==undefined)e.textContent=txt;return e}
 function renderCustomers(){const box=document.getElementById('customerList');if(!box)return;box.replaceChildren();const q=(document.getElementById('search')?.value||'').trim().toLocaleLowerCase(),filter=document.getElementById('customerFilter')?.value||'all',sort=document.getElementById('customerSort')?.value||'recent';let items=db.customers.map((c,i)=>({c,i,s:sumCustomer(i)}));if(q)items=items.filter(x=>(`${x.c.n} ${x.c.p} ${x.c.note}`).toLocaleLowerCase().includes(q));if(filter==='debtors')items=items.filter(x=>x.s.bal>0);else if(filter==='creditors')items=items.filter(x=>x.s.bal<0);else if(filter==='settled')items=items.filter(x=>x.s.bal===0);if(sort==='debt')items.sort((a,b)=>b.s.bal-a.s.bal||b.i-a.i);else if(sort==='balance')items.sort((a,b)=>Math.abs(b.s.bal)-Math.abs(a.s.bal)||b.i-a.i);else if(sort==='name')items.sort((a,b)=>a.c.n.localeCompare(b.c.n,'fa'));else items.sort((a,b)=>b.i-a.i);const summary=document.getElementById('customerListSummary');if(summary){const debtors=items.filter(x=>x.s.bal>0),total=debtors.reduce((n,x)=>n+x.s.bal,0);summary.textContent=`نمایش ${fa(items.length)} از ${fa(db.customers.length)} مشتری • بدهکار در فهرست: ${fa(debtors.length)} • جمع بدهی فهرست: ${fa(total)} تومان`}items.forEach(({c,i,s})=>{const row=el('div','customer'),main=el('div','customer-main'),name=el('div','customer-name','👤 '+c.n),status=s.bal>0?'بدهکار':s.bal<0?'بستانکار':'تسویه',sub=el('div','sub',(c.p||'بدون تلفن')+' • '+status+' • خرید '+fa(s.buy)+' | دریافتی '+fa(s.pay)),bal=el('div','balance '+(s.bal>0?'pos':s.bal<0?'neg':'zero'),fa(s.bal));main.append(name,sub);main.onclick=()=>openCustomer(i);const acts=el('div','mini-actions no-print');const edit=el('button','mini','✏️');edit.title='ویرایش مشتری';edit.onclick=()=>editCustomer(i);const del=el('button','mini del','×');del.title='حذف مشتری';del.onclick=()=>deleteCustomer(i);acts.append(edit,del);row.append(main,bal,acts);box.append(row)});if(!items.length)box.append(el('div','empty',db.customers.length?'با این جستجو یا فیلتر مشتری‌ای پیدا نشد.':'هنوز مشتری ثبت نشده است.'))}
 function debtReminderMessage(c,balance){const month=new Intl.DateTimeFormat('fa-IR-u-ca-persian',{year:'numeric',month:'long'}).format(new Date());const shop=db.shop||'فروشگاه';return `سلام ${c.n} عزیز، وقت بخیر 🌷\nیادآوری حساب ${shop} برای ${month}:\nمانده بدهی شما تا امروز: ${fa(balance)} تومان\nاگر پرداختی انجام داده‌اید یا مبلغی نیاز به بررسی دارد، لطفاً اطلاع دهید. سپاس از همراهی شما 🙏`}
@@ -284,7 +334,7 @@ function showModal(title,body,onSave){const root=document.getElementById('modalR
 function closeModal(){document.getElementById('modalRoot').replaceChildren()}
 function markBackupCreated(){try{localStorage.setItem(BACKUP_KEY,String(Date.now()))}catch(e){}renderBackupReminder()}
 function renderBackupReminder(){const box=document.getElementById('backupReminder');if(!box)return;let last=0;try{last=Number(localStorage.getItem(BACKUP_KEY)||0)}catch(e){}if(!last){box.textContent='⚠️ هنوز تهیه پشتیبان در این نسخه ثبت نشده است. پیشنهاد می‌شود همین حالا یک فایل پشتیبان بگیری و آن را در جای امن نگه داری.';return}const days=Math.floor((Date.now()-last)/86400000),date=new Date(last).toLocaleDateString('fa-IR');box.textContent=days>=7?'⚠️ بیش از یک هفته از آخرین تهیه پشتیبان گذشته است ('+date+'). لطفاً پشتیبان جدید بگیر.':'✅ آخرین تهیه پشتیبان: '+date+' — '+(7-days)+' روز تا یادآوری بعدی.'}
-async function exportBackup(mode){const payload={schemaVersion:3,exportedAt:new Date().toISOString(),customers:db.customers,trans:db.trans,shop:db.shop,barcodeProducts:barcodeProducts};const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}),fname='daftarhesab-backup-'+localISO()+'.json';if(mode==='choose'&&window.showSaveFilePicker){try{const h=await window.showSaveFilePicker({suggestedName:fname,types:[{description:'JSON backup',accept:{'application/json':['.json']}}]});const w=await h.createWritable();await w.write(blob);await w.close();markBackupCreated();setText('backupStatus','پشتیبان کامل ذخیره شد ✓');return}catch(e){if(e.name==='AbortError')return}}
+async function exportBackup(mode){const payload={schemaVersion:3,exportedAt:new Date().toISOString(),customers:db.customers,trans:db.trans,shop:db.shop,barcodeProducts:barcodeProducts};const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}),fname='daftarhesab-backup-'+localISO()+'.json';if(window.DaftarHesabBridge&&typeof window.DaftarHesabBridge.saveBackup==='function'){window.DaftarHesabBridge.saveBackup(JSON.stringify(payload));return}if(mode==='choose'&&window.showSaveFilePicker){try{const h=await window.showSaveFilePicker({suggestedName:fname,types:[{description:'JSON backup',accept:{'application/json':['.json']}}]});const w=await h.createWritable();await w.write(blob);await w.close();markBackupCreated();setText('backupStatus','پشتیبان کامل ذخیره شد ✓');return}catch(e){if(e.name==='AbortError')return}}
 const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=fname;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);markBackupCreated();setText('backupStatus','پشتیبان کامل (شامل فهرست بارکدها) آماده دانلود است. مطمئن شو فایل در پوشه دانلودها ذخیره شده است.')}
 function normalizeBackupBarcodeProducts(list){
  if(!Array.isArray(list))throw new Error('barcode products must be an array');
@@ -315,27 +365,36 @@ function normalizeBackupDatabase(d){
  });
  return {customers,trans,shop:String(d.shop??'')};
 }
+function processBackupText(text){
+ try{
+  const d=JSON.parse(text),nextDB=normalizeBackupDatabase(d);
+  const includesBarcodeProducts=Object.prototype.hasOwnProperty.call(d,'barcodeProducts');
+  const nextBarcodeProducts=includesBarcodeProducts?normalizeBackupBarcodeProducts(d.barcodeProducts):barcodeProducts.slice();
+  const promptText='فایل شامل '+nextDB.customers.length+' مشتری، '+nextDB.trans.length+' تراکنش و '+nextBarcodeProducts.length+' کالا در فهرست بارکد است. اطلاعات فعلی با این فایل جایگزین شود؟ قبل از ادامه از اطلاعات فعلی پشتیبان بگیر.';
+  if(!confirm(promptText))return;
+  db=nextDB;barcodeProducts=nextBarcodeProducts;
+  save();const barcodeSaved=includesBarcodeProducts?saveBarcodeProducts():true;
+  goHome();renderBarcodeProducts();barcodeSaleModeChanged();
+  const status=!includesBarcodeProducts?'بازیابی انجام شد؛ این پشتیبان قدیمی فهرست بارکد ندارد و فهرست فعلی حفظ شد.':barcodeSaved?'بازیابی کامل شد؛ مشتری‌ها، تراکنش‌ها و فهرست بارکدها بازیابی شدند.':'مشتری‌ها و تراکنش‌ها بازیابی شدند، اما ذخیره فهرست بارکدها ناموفق بود؛ دوباره پشتیبان‌گیری کن.';
+  setText('backupStatus',status);
+ }catch(err){alert('فایل پشتیبان معتبر نیست یا ساختار آن قابل شناسایی نیست. اطلاعات فعلی تغییر نکرد.');}
+}
 function importBackup(e){
  const file=e.target.files&&e.target.files[0];if(!file)return;
  const reader=new FileReader();
- reader.onload=()=>{
-  try{
-   const d=JSON.parse(reader.result),nextDB=normalizeBackupDatabase(d);
-   // Old v2 backups do not contain barcode products. Preserve the current list for those files.
-   const includesBarcodeProducts=Object.prototype.hasOwnProperty.call(d,'barcodeProducts');
-   const nextBarcodeProducts=includesBarcodeProducts?normalizeBackupBarcodeProducts(d.barcodeProducts):barcodeProducts.slice();
-   const promptText=`فایل شامل ${nextDB.customers.length} مشتری، ${nextDB.trans.length} تراکنش و ${nextBarcodeProducts.length} کالا در فهرست بارکد است. اطلاعات فعلی با این فایل جایگزین شود؟ قبل از ادامه از اطلاعات فعلی پشتیبان بگیر.`;
-   if(!confirm(promptText))return;
-   db=nextDB;barcodeProducts=nextBarcodeProducts;
-   save();const barcodeSaved=includesBarcodeProducts?saveBarcodeProducts():true;
-   goHome();renderBarcodeProducts();barcodeSaleModeChanged();
-   const status=!includesBarcodeProducts?'بازیابی انجام شد؛ این پشتیبان قدیمی فهرست بارکد ندارد و فهرست فعلی حفظ شد.':barcodeSaved?'بازیابی کامل شد؛ مشتری‌ها، تراکنش‌ها و فهرست بارکدها بازیابی شدند.':'مشتری‌ها و تراکنش‌ها بازیابی شدند، اما ذخیره فهرست بارکدها ناموفق بود؛ دوباره پشتیبان‌گیری کن.';
-   setText('backupStatus',status);
-  }catch(err){alert('فایل پشتیبان معتبر نیست یا ساختار آن قابل شناسایی نیست. اطلاعات فعلی تغییر نکرد.');}
-  finally{e.target.value='';}
- };
+ reader.onload=()=>{processBackupText(String(reader.result||''));e.target.value='';};
+ reader.onerror=()=>{alert('خواندن فایل پشتیبان ناموفق بود.');e.target.value='';};
  reader.readAsText(file);
 }
+function requestBackupImport(){
+ if(window.DaftarHesabBridge&&typeof window.DaftarHesabBridge.restoreBackup==='function'){window.DaftarHesabBridge.restoreBackup();return;}
+ document.getElementById('fileImport').click();
+}
+window.onNativeBackupLoaded=function(text){processBackupText(text)};
+window.onNativeBackupSaved=function(success,message){
+ if(success){markBackupCreated();setText('backupStatus','پشتیبان کامل ذخیره شد. آن را در Google Drive یا جای امن دیگری نگه دار.');}
+ else setText('backupStatus','ذخیره پشتیبان ناموفق بود: '+(message||'خطای نامشخص'));
+};
 // سازگاری با نسخه قبلی: کلید ذخیره قبلی حفظ شده است.
 setupCompactSections();renderBarcodeProducts();barcodeSaleModeChanged();document.getElementById('tDate').value=localISO();document.getElementById('mDate').value=localISO();updateDates();if(db.shop)document.getElementById('sName').value=db.shop;renderHome();
 

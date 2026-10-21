@@ -27,6 +27,7 @@ class MainActivity : Activity() {
     private lateinit var webView: WebView
     private lateinit var assetLoader: WebViewAssetLoader
     private var pendingBackupJson: String? = null
+    private var pendingReadableReport: String? = null
     private var pendingWebPermissionRequest: PermissionRequest? = null
     private var barcodeTarget: String = "sale"
 
@@ -34,6 +35,11 @@ class MainActivity : Activity() {
         @JavascriptInterface
         fun saveBackup(json: String) {
             runOnUiThread { beginSaveBackup(json) }
+        }
+
+        @JavascriptInterface
+        fun saveReadableReport(html: String) {
+            runOnUiThread { beginSaveReadableReport(html) }
         }
 
         @JavascriptInterface
@@ -129,6 +135,22 @@ class MainActivity : Activity() {
         }
     }
 
+    private fun beginSaveReadableReport(html: String) {
+        pendingReadableReport = html
+        val date = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
+        val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
+            addCategory(Intent.CATEGORY_OPENABLE)
+            type = "text/html"
+            putExtra(Intent.EXTRA_TITLE, "daftarhesab-report-$date.html")
+        }
+        try {
+            startActivityForResult(intent, REQUEST_SAVE_READABLE_REPORT)
+        } catch (e: Exception) {
+            pendingReadableReport = null
+            notifyReadableReportSaved(false, e.message ?: "باز کردن محل ذخیره گزارش ممکن نشد")
+        }
+    }
+
     private fun beginRestoreBackup() {
         val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
             addCategory(Intent.CATEGORY_OPENABLE)
@@ -186,6 +208,26 @@ class MainActivity : Activity() {
             return
         }
 
+        if (requestCode == REQUEST_SAVE_READABLE_REPORT) {
+            val html = pendingReadableReport
+            pendingReadableReport = null
+            val uri = if (resultCode == RESULT_OK) data?.data else null
+            if (html == null || uri == null) {
+                notifyReadableReportSaved(false, "ذخیره گزارش لغو شد")
+            } else {
+                try {
+                    val output = contentResolver.openOutputStream(uri)
+                        ?: throw IOException("باز کردن فایل برای نوشتن ناموفق بود")
+                    output.use { it.write(html.toByteArray(Charsets.UTF_8)) }
+                    notifyReadableReportSaved(true, "گزارش خوانا ذخیره شد")
+                } catch (e: Exception) {
+                    notifyReadableReportSaved(false, e.message ?: "نوشتن گزارش ناموفق بود")
+                }
+            }
+            super.onActivityResult(requestCode, resultCode, data)
+            return
+        }
+
         if (requestCode == REQUEST_RESTORE_BACKUP) {
             val uri: Uri? = if (resultCode == RESULT_OK) data?.data else null
             if (uri != null) {
@@ -212,6 +254,18 @@ class MainActivity : Activity() {
             webView.post {
                 webView.evaluateJavascript(
                     "window.onNativeBackupSaved && window.onNativeBackupSaved($success, $quoted);",
+                    null
+                )
+            }
+        }
+    }
+
+    private fun notifyReadableReportSaved(success: Boolean, message: String) {
+        val quoted = JSONObject.quote(message)
+        if (::webView.isInitialized) {
+            webView.post {
+                webView.evaluateJavascript(
+                    "window.onNativeReadableReportSaved && window.onNativeReadableReportSaved($success, $quoted);",
                     null
                 )
             }
@@ -274,6 +328,7 @@ class MainActivity : Activity() {
     companion object {
         private const val REQUEST_SAVE_BACKUP = 2101
         private const val REQUEST_RESTORE_BACKUP = 2102
+        private const val REQUEST_SAVE_READABLE_REPORT = 2103
         private const val REQUEST_CAMERA_PERMISSION = 2201
     }
 }
